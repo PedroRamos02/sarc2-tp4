@@ -21,6 +21,20 @@ serviço que alimenta a página do aluno (sem login): compõe dados de
 
 Ver [`.env.example`](.env.example) — URLs internas dos 4 serviços consultados.
 
+## Testes automatizados
+
+Testes unitários com Jest (`tests/`): os 4 clients HTTP são mockados. Cobrem
+`consultaService.montarGrade` (enriquecimento por id, incluindo referências
+ausentes tratadas como `null`) e as funções de listagem simples.
+
+```bash
+npm install
+npm test
+```
+
+Roda automaticamente no CI a cada Pull Request para `master`
+(`.github/workflows/tests.yml`).
+
 ## Rodando localmente
 
 ```bash

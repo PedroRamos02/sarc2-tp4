@@ -34,6 +34,20 @@ Ver [`.env.example`](.env.example). `JWT_SECRET` deve ser **idêntico** ao do `a
 - `GET /health` — healthcheck
 - `GET /metrics` — métricas Prometheus (`http_requests_total`, `http_request_duration_seconds`, `gateway_proxy_errors_total`, `gateway_auth_failures_total`)
 
+## Testes automatizados
+
+Testes unitários com Jest (`tests/`) cobrindo o middleware `authenticate`
+(token ausente/malformado/inválido/expirado/válido) sem subir o Express nem
+depender de rede.
+
+```bash
+npm install
+npm test
+```
+
+Roda automaticamente no CI a cada Pull Request para `master`
+(`.github/workflows/tests.yml`).
+
 ## Rodando localmente
 
 ```bash

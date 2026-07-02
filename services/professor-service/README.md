@@ -68,6 +68,22 @@ Usados pela página pública do aluno (via `consulta-service` ou diretamente pel
   `professor_professores_total`, `professor_cursos_total`, `professor_disciplinas_total`, além das
   métricas padrão de processo)
 
+## Testes automatizados
+
+Testes unitários com Jest (`tests/`): `prismaClient` e o `authServiceClient`
+são mockados. Cobrem `professorService` (criação com credencial no
+auth-service, rollback em falha, sincronização de dados/status),
+`cursoService`, `disciplinaService` (validação de `cursoId`) e o middleware
+`requireRole`.
+
+```bash
+npm install
+npm test
+```
+
+Roda automaticamente no CI a cada Pull Request para `master`
+(`.github/workflows/tests.yml`).
+
 ## Rodando localmente
 
 ```bash

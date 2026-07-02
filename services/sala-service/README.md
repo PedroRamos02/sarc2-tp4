@@ -48,6 +48,20 @@ Ver [`.env.example`](.env.example). Principais:
 - `GET /health` — healthcheck
 - `GET /metrics` — métricas Prometheus (`http_requests_total`, `http_request_duration_seconds`, `http_errors_total`, `sala_espacos_total` por `tipo`, além das métricas padrão de processo)
 
+## Testes automatizados
+
+Testes unitários com Jest (`tests/`), `prismaClient` mockado: cobrem
+`espacoService` (criação SALA/LABORATORIO, validações, 404, atualização,
+ativar/desativar, remoção) e o middleware `requireRole`.
+
+```bash
+npm install
+npm test
+```
+
+Roda automaticamente no CI a cada Pull Request para `master`
+(`.github/workflows/tests.yml`).
+
 ## Rodando localmente
 
 ```bash

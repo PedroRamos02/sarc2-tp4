@@ -42,6 +42,22 @@ de confirmar uma reserva.
 
 Ver [`.env.example`](.env.example) — inclui as URLs internas de `sala-service`, `equipamento-service` e `professor-service`, consultadas via seus endpoints públicos de leitura.
 
+## Testes automatizados
+
+Testes unitários com Jest (`tests/`): `prismaClient` (incluindo `$transaction`)
+e os três clients HTTP (`salaServiceClient`, `equipamentoServiceClient`,
+`professorServiceClient`) são totalmente mockados — cobrem as regras de
+conflito de sala/professor, disponibilidade de equipamento, autorização
+(`garantirPermissao`) e `verificarDisponibilidade`.
+
+```bash
+npm install
+npm test
+```
+
+Roda automaticamente no CI a cada Pull Request para `master`
+(`.github/workflows/tests.yml`).
+
 ## Rodando localmente
 
 ```bash

@@ -1,0 +1,46 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum StatusReserva {
+  ATIVA
+  CANCELADA
+}
+
+model Reserva {
+  id           Int                  @id @default(autoincrement())
+  disciplinaId Int?                 @map("disciplina_id")
+  cursoId      Int?                 @map("curso_id")
+  turma        String               @db.VarChar(50)
+  professorId  Int                  @map("professor_id")
+  espacoId     Int                  @map("espaco_id")
+  data         DateTime             @db.Date
+  horaInicio   String               @map("hora_inicio") @db.VarChar(5)
+  horaFim      String               @map("hora_fim") @db.VarChar(5)
+  observacoes  String?              @db.VarChar(500)
+  status       StatusReserva        @default(ATIVA)
+  criadoPor    Int                  @map("criado_por")
+  createdAt    DateTime             @default(now()) @map("created_at")
+  updatedAt    DateTime             @updatedAt @map("updated_at")
+  equipamentos ReservaEquipamento[]
+
+  @@index([espacoId, data])
+  @@index([professorId, data])
+  @@map("reservas")
+}
+
+model ReservaEquipamento {
+  id            Int     @id @default(autoincrement())
+  reservaId     Int     @map("reserva_id")
+  reserva       Reserva @relation(fields: [reservaId], references: [id], onDelete: Cascade)
+  equipamentoId Int     @map("equipamento_id")
+  quantidade    Int
+
+  @@index([equipamentoId])
+  @@map("reserva_equipamentos")
+}

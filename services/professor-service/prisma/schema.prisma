@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Professor {
+  id           Int          @id @default(autoincrement())
+  nome         String       @db.VarChar(150)
+  email        String       @unique @db.VarChar(150)
+  telefone     String?      @db.VarChar(30)
+  departamento String?      @db.VarChar(120)
+  ativo        Boolean      @default(true)
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  disciplinas  Disciplina[]
+
+  @@map("professores")
+}
+
+model Curso {
+  id          Int          @id @default(autoincrement())
+  nome        String       @db.VarChar(150)
+  codigo      String       @unique @db.VarChar(30)
+  ativo       Boolean      @default(true)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  disciplinas Disciplina[]
+
+  @@map("cursos")
+}
+
+model Disciplina {
+  id           Int      @id @default(autoincrement())
+  nome         String   @db.VarChar(150)
+  codigo       String   @unique @db.VarChar(30)
+  cursoId      Int      @map("curso_id")
+  curso        Curso    @relation(fields: [cursoId], references: [id])
+  cargaHoraria Int      @map("carga_horaria")
+  ativo        Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([cursoId])
+  @@map("disciplinas")
+}

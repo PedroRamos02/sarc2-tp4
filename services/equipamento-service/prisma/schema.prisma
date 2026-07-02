@@ -1,0 +1,21 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Equipamento {
+  id              Int      @id @default(autoincrement())
+  nome            String   @db.VarChar(150)
+  tipo            String   @db.VarChar(100)
+  quantidadeTotal Int      @map("quantidade_total")
+  disponivel      Boolean  @default(true)
+  ativo           Boolean  @default(true)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("equipamentos")
+}

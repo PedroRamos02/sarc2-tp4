@@ -1,0 +1,337 @@
+{
+  "info": {
+    "name": "SARC 2 - Sistema de Alocação de Recursos e Consultas",
+    "description": "Coleção de exemplos para os fluxos principais do SARC 2, via api-gateway (http://localhost:3000/api).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api" },
+    { "key": "token", "value": "" },
+    { "key": "professorId", "value": "" },
+    { "key": "cursoId", "value": "" },
+    { "key": "disciplinaId", "value": "" },
+    { "key": "espacoId", "value": "" },
+    { "key": "equipamentoId", "value": "" },
+    { "key": "reservaId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Autenticação",
+      "item": [
+        {
+          "name": "Login (admin seed)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.token) { pm.collectionVariables.set('token', data.token); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sarc2.local\",\n  \"senha\": \"Admin@12345\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Meu perfil (GET /me)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Admin - Professores",
+      "item": [
+        {
+          "name": "Criar professor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.id) { pm.collectionVariables.set('professorId', data.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Maria Souza\",\n  \"email\": \"maria.souza@sarc2.local\",\n  \"telefone\": \"11999990000\",\n  \"departamento\": \"Ciência da Computação\"\n}"
+            },
+            "url": "{{baseUrl}}/professores"
+          }
+        },
+        {
+          "name": "Listar professores",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/professores"
+          }
+        },
+        {
+          "name": "Desativar professor",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"ativo\": false\n}" },
+            "url": "{{baseUrl}}/professores/{{professorId}}/status"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Admin - Cursos e Disciplinas",
+      "item": [
+        {
+          "name": "Criar curso",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.id) { pm.collectionVariables.set('cursoId', data.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Engenharia de Software\",\n  \"codigo\": \"ENGSOFT\"\n}" },
+            "url": "{{baseUrl}}/cursos"
+          }
+        },
+        {
+          "name": "Criar disciplina",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.id) { pm.collectionVariables.set('disciplinaId', data.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Arquitetura de Software\",\n  \"codigo\": \"ARQSOFT01\",\n  \"cursoId\": {{cursoId}},\n  \"cargaHoraria\": 60\n}"
+            },
+            "url": "{{baseUrl}}/disciplinas"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Admin - Salas, Laboratórios e Equipamentos",
+      "item": [
+        {
+          "name": "Criar sala",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.id) { pm.collectionVariables.set('espacoId', data.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Sala 101\",\n  \"tipo\": \"SALA\",\n  \"capacidade\": 40,\n  \"bloco\": \"Bloco A\",\n  \"descricao\": \"Sala com projetor fixo\"\n}"
+            },
+            "url": "{{baseUrl}}/espacos"
+          }
+        },
+        {
+          "name": "Criar laboratório",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Laboratório de Informática 1\",\n  \"tipo\": \"LABORATORIO\",\n  \"capacidade\": 25,\n  \"bloco\": \"Bloco B\",\n  \"descricao\": \"25 estações de trabalho\"\n}"
+            },
+            "url": "{{baseUrl}}/espacos"
+          }
+        },
+        {
+          "name": "Criar equipamento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.id) { pm.collectionVariables.set('equipamentoId', data.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Notebook Dell\",\n  \"tipo\": \"Notebook\",\n  \"quantidadeTotal\": 10,\n  \"disponivel\": true\n}"
+            },
+            "url": "{{baseUrl}}/equipamentos"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Professor - Reservas",
+      "item": [
+        {
+          "name": "Login como professor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.token) { pm.collectionVariables.set('token', data.token); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"maria.souza@sarc2.local\",\n  \"senha\": \"<senha temporária retornada na criação do professor>\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Verificar disponibilidade",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/reservas/disponibilidade?espacoId={{espacoId}}&data=2026-08-10&horaInicio=08:00&horaFim=10:00"
+          }
+        },
+        {
+          "name": "Criar reserva",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.id) { pm.collectionVariables.set('reservaId', data.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"turma\": \"2026.2-A\",\n  \"espacoId\": {{espacoId}},\n  \"data\": \"2026-08-10\",\n  \"horaInicio\": \"08:00\",\n  \"horaFim\": \"10:00\",\n  \"disciplinaId\": {{disciplinaId}},\n  \"cursoId\": {{cursoId}},\n  \"observacoes\": \"Aula prática\",\n  \"equipamentos\": [ { \"equipamentoId\": {{equipamentoId}}, \"quantidade\": 2 } ]\n}"
+            },
+            "url": "{{baseUrl}}/reservas"
+          }
+        },
+        {
+          "name": "Criar reserva conflitante (deve retornar 409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"turma\": \"2026.2-B\",\n  \"espacoId\": {{espacoId}},\n  \"data\": \"2026-08-10\",\n  \"horaInicio\": \"09:00\",\n  \"horaFim\": \"11:00\"\n}"
+            },
+            "url": "{{baseUrl}}/reservas"
+          }
+        },
+        {
+          "name": "Listar minhas reservas",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/reservas"
+          }
+        },
+        {
+          "name": "Cancelar reserva",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/reservas/{{reservaId}}/cancelar"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Consulta pública (aluno, sem token)",
+      "item": [
+        { "name": "Listar salas", "request": { "method": "GET", "url": "{{baseUrl}}/consulta/salas" } },
+        { "name": "Listar laboratórios", "request": { "method": "GET", "url": "{{baseUrl}}/consulta/laboratorios" } },
+        { "name": "Listar professores", "request": { "method": "GET", "url": "{{baseUrl}}/consulta/professores" } },
+        { "name": "Listar equipamentos", "request": { "method": "GET", "url": "{{baseUrl}}/consulta/equipamentos" } },
+        {
+          "name": "Grade de horários",
+          "request": { "method": "GET", "url": "{{baseUrl}}/consulta/grade?data=2026-08-10" }
+        }
+      ]
+    }
+  ]
+}

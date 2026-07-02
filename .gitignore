@@ -1,0 +1,15 @@
+node_modules/
+dist/
+build/
+.env
+!.env.example
+*.log
+npm-debug.log*
+.DS_Store
+coverage/
+frontend/dist/
+services/*/generated/
+grafana-data/
+mysql-data/
+prometheus-data/
+grafana-storage/

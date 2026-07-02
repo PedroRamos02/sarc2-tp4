@@ -1,0 +1,243 @@
+networks:
+  sarc2-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  prometheus-data:
+  grafana-data:
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: sarc2-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - '3306:3306'
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./database/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-p${MYSQL_ROOT_PASSWORD}']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - sarc2-network
+
+  auth-service:
+    build: ./services/auth-service
+    container_name: sarc2-auth-service
+    restart: unless-stopped
+    environment:
+      PORT: 3001
+      NODE_ENV: production
+      DATABASE_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/auth_db
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      SEED_ADMIN_NAME: ${SEED_ADMIN_NAME}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD}
+      LOG_LEVEL: info
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+    ports:
+      - '${AUTH_SERVICE_PORT}:3001'
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - sarc2-network
+
+  professor-service:
+    build: ./services/professor-service
+    container_name: sarc2-professor-service
+    restart: unless-stopped
+    environment:
+      PORT: 3002
+      NODE_ENV: production
+      DATABASE_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/professor_db
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      AUTH_SERVICE_URL: http://auth-service:3001
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      LOG_LEVEL: info
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+    ports:
+      - '${PROFESSOR_SERVICE_PORT}:3002'
+    depends_on:
+      mysql:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - sarc2-network
+
+  sala-service:
+    build: ./services/sala-service
+    container_name: sarc2-sala-service
+    restart: unless-stopped
+    environment:
+      PORT: 3003
+      NODE_ENV: production
+      DATABASE_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/sala_db
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      LOG_LEVEL: info
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+    ports:
+      - '${SALA_SERVICE_PORT}:3003'
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - sarc2-network
+
+  equipamento-service:
+    build: ./services/equipamento-service
+    container_name: sarc2-equipamento-service
+    restart: unless-stopped
+    environment:
+      PORT: 3004
+      NODE_ENV: production
+      DATABASE_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/equipamento_db
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      LOG_LEVEL: info
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+    ports:
+      - '${EQUIPAMENTO_SERVICE_PORT}:3004'
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - sarc2-network
+
+  reserva-service:
+    build: ./services/reserva-service
+    container_name: sarc2-reserva-service
+    restart: unless-stopped
+    environment:
+      PORT: 3005
+      NODE_ENV: production
+      DATABASE_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/reserva_db
+      SALA_SERVICE_URL: http://sala-service:3003
+      EQUIPAMENTO_SERVICE_URL: http://equipamento-service:3004
+      PROFESSOR_SERVICE_URL: http://professor-service:3002
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      LOG_LEVEL: info
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+    ports:
+      - '${RESERVA_SERVICE_PORT}:3005'
+    depends_on:
+      mysql:
+        condition: service_healthy
+      sala-service:
+        condition: service_started
+      equipamento-service:
+        condition: service_started
+      professor-service:
+        condition: service_started
+    networks:
+      - sarc2-network
+
+  consulta-service:
+    build: ./services/consulta-service
+    container_name: sarc2-consulta-service
+    restart: unless-stopped
+    environment:
+      PORT: 3006
+      NODE_ENV: production
+      PROFESSOR_SERVICE_URL: http://professor-service:3002
+      SALA_SERVICE_URL: http://sala-service:3003
+      EQUIPAMENTO_SERVICE_URL: http://equipamento-service:3004
+      RESERVA_SERVICE_URL: http://reserva-service:3005
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      LOG_LEVEL: info
+    ports:
+      - '${CONSULTA_SERVICE_PORT}:3006'
+    depends_on:
+      - professor-service
+      - sala-service
+      - equipamento-service
+      - reserva-service
+    networks:
+      - sarc2-network
+
+  api-gateway:
+    build: ./gateway
+    container_name: sarc2-api-gateway
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      AUTH_SERVICE_URL: http://auth-service:3001
+      PROFESSOR_SERVICE_URL: http://professor-service:3002
+      SALA_SERVICE_URL: http://sala-service:3003
+      EQUIPAMENTO_SERVICE_URL: http://equipamento-service:3004
+      RESERVA_SERVICE_URL: http://reserva-service:3005
+      CONSULTA_SERVICE_URL: http://consulta-service:3006
+      LOG_LEVEL: info
+    ports:
+      - '${GATEWAY_PORT}:3000'
+    depends_on:
+      - auth-service
+      - professor-service
+      - sala-service
+      - equipamento-service
+      - reserva-service
+      - consulta-service
+    networks:
+      - sarc2-network
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:${GATEWAY_PORT}/api
+    container_name: sarc2-frontend
+    restart: unless-stopped
+    ports:
+      - '${FRONTEND_PORT}:80'
+    depends_on:
+      - api-gateway
+    networks:
+      - sarc2-network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: sarc2-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    ports:
+      - '${PROMETHEUS_PORT}:9090'
+    networks:
+      - sarc2-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: sarc2-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - grafana-data:/var/lib/grafana
+    ports:
+      - '${GRAFANA_PORT}:3000'
+    depends_on:
+      - prometheus
+    networks:
+      - sarc2-network

@@ -1,0 +1,28 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum TipoEspaco {
+  SALA
+  LABORATORIO
+}
+
+model Espaco {
+  id          Int        @id @default(autoincrement())
+  nome        String     @db.VarChar(150)
+  tipo        TipoEspaco
+  capacidade  Int
+  bloco       String?    @db.VarChar(100)
+  descricao   String?    @db.VarChar(500)
+  ativo       Boolean    @default(true)
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  @@index([tipo])
+  @@map("espacos")
+}

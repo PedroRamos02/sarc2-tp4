@@ -56,6 +56,20 @@ disponibilidade/quantidade ao criar uma reserva.
 - `GET /health` — healthcheck
 - `GET /metrics` — métricas Prometheus (`http_requests_total`, `http_request_duration_seconds`, `http_errors_total`, `equipamento_equipamentos_total`, `equipamento_unidades_total`, além das métricas padrão de processo)
 
+## Testes automatizados
+
+Testes unitários com Jest (`tests/`), `prismaClient` mockado: cobrem
+`equipamentoService` (criação, 404, atualização, ativar/desativar, alterar
+disponibilidade, remoção) e o middleware `requireRole`.
+
+```bash
+npm install
+npm test
+```
+
+Roda automaticamente no CI a cada Pull Request para `master`
+(`.github/workflows/tests.yml`).
+
 ## Rodando localmente
 
 ```bash

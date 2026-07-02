@@ -17,6 +17,7 @@ Prometheus/Grafana e logs estruturados via Winston.
 - [Variáveis de ambiente](#variáveis-de-ambiente)
 - [Endpoints](#endpoints)
 - [Observabilidade](#observabilidade)
+- [Testes automatizados e CI](#testes-automatizados-e-ci)
 - [Qualidade de código](#qualidade-de-código)
 - [Coleção Postman](#coleção-postman)
 - [Estrutura do repositório](#estrutura-do-repositório)
@@ -314,6 +315,38 @@ de payloads). Todos os caminhos abaixo são relativos a `http://localhost:3000/a
 Ver [`monitoring/README.md`](monitoring/README.md) para a lista completa de
 métricas expostas e o dashboard Grafana pré-configurado (requisições HTTP,
 tempo de resposta, erros, uso de CPU/memória, reservas, usuários, conflitos).
+
+## Testes automatizados e CI
+
+Cada um dos 7 backends (`api-gateway` + 6 microsserviços) tem sua própria
+suíte de **testes unitários com Jest** (`tests/`), sem dependência de banco
+de dados ou rede real — `prismaClient` e os clients HTTP entre serviços são
+sempre mockados. Foco em `services/` (regras de negócio) e `middlewares/`
+(`identity`/`requireRole`/`authenticate`).
+
+| Serviço | Testes |
+|---|---|
+| `api-gateway` | verificação de JWT (`authenticate`) |
+| `auth-service` | login, gestão de credenciais, hash/JWT |
+| `professor-service` | professores (+ integração com auth-service), cursos, disciplinas |
+| `sala-service` | CRUD de salas/laboratórios |
+| `equipamento-service` | CRUD de equipamentos e disponibilidade |
+| `reserva-service` | conflitos de sala/professor, disponibilidade de equipamento, autorização |
+| `consulta-service` | agregação da grade pública |
+
+Rodando um serviço isoladamente:
+
+```bash
+cd services/reserva-service   # ou qualquer outro serviço/gateway
+npm install
+npm test
+```
+
+### CI — GitHub Actions
+
+`.github/workflows/tests.yml` dispara **a cada Pull Request aberto contra a
+branch `master`**, rodando a suíte de testes de cada serviço em um job
+paralelo (matrix), com `npm ci` + `npm test` isolados por diretório.
 
 ## Qualidade de código
 

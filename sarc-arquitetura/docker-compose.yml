@@ -1,0 +1,133 @@
+# SARC — orquestração completa (T3)
+# Perfis: (padrão) app + infra | "tools" liga SonarQube
+name: sarc
+
+x-otel: &otel
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+  OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+  JAVA_TOOL_OPTIONS: -javaagent:/otel/opentelemetry-javaagent.jar
+
+x-spring: &spring
+  SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+  EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
+  SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/sarc
+  KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/sarc
+
+services:
+  # ---------- infraestrutura de dados e identidade ----------
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: sarc
+      POSTGRES_USER: sarc
+      POSTGRES_PASSWORD: sarc
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+      - ./infra/init-schemas.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U sarc"], interval: 5s, retries: 10 }
+    ports: ["5432:5432"]
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    command: start-dev --import-realm
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/sarc
+      KC_DB_USERNAME: sarc
+      KC_DB_PASSWORD: sarc
+    volumes: [ "./keycloak/realm-export.json:/opt/keycloak/data/import/realm.json" ]
+    ports: ["8180:8080"]
+    depends_on: { postgres: { condition: service_healthy } }
+
+  # ---------- Spring Cloud ----------
+  config-server:
+    build: ./config-server
+    environment: { SPRING_CLOUD_CONFIG_SERVER_GIT_URI: "https://github.com/<grupo>/sarc-config" }
+    ports: ["8888:8888"]
+    healthcheck: { test: ["CMD", "wget", "-qO-", "http://localhost:8888/actuator/health"], interval: 10s, retries: 10 }
+
+  discovery-server:
+    build: ./discovery-server
+    ports: ["8761:8761"]
+    depends_on: { config-server: { condition: service_healthy } }
+    healthcheck: { test: ["CMD", "wget", "-qO-", "http://localhost:8761/actuator/health"], interval: 10s, retries: 10 }
+
+  api-gateway:
+    build: ./api-gateway
+    environment: { <<: [*spring, *otel], OTEL_SERVICE_NAME: api-gateway }
+    ports: ["8080:8080"]
+    depends_on:
+      discovery-server: { condition: service_healthy }
+      keycloak: { condition: service_started }
+
+  # ---------- microserviços de negócio ----------
+  usuario-service:
+    build: ./usuario-service
+    environment: { <<: [*spring, *otel], OTEL_SERVICE_NAME: usuario-service, SPRING_DATASOURCE_USERNAME: svc_usuario, SPRING_DATASOURCE_PASSWORD: svc_usuario }
+    depends_on:
+      postgres: { condition: service_healthy }
+      discovery-server: { condition: service_healthy }
+
+  espaco-service:
+    build: ./espaco-service
+    environment: { <<: [*spring, *otel], OTEL_SERVICE_NAME: espaco-service, SPRING_DATASOURCE_USERNAME: svc_espaco, SPRING_DATASOURCE_PASSWORD: svc_espaco }
+    depends_on:
+      postgres: { condition: service_healthy }
+      discovery-server: { condition: service_healthy }
+
+  equipamento-service:
+    build: ./equipamento-service
+    environment: { <<: [*spring, *otel], OTEL_SERVICE_NAME: equipamento-service, SPRING_DATASOURCE_USERNAME: svc_equipamento, SPRING_DATASOURCE_PASSWORD: svc_equipamento }
+    depends_on:
+      postgres: { condition: service_healthy }
+      discovery-server: { condition: service_healthy }
+
+  reserva-service:
+    build: ./reserva-service
+    environment: { <<: [*spring, *otel], OTEL_SERVICE_NAME: reserva-service, SPRING_DATASOURCE_USERNAME: svc_reserva, SPRING_DATASOURCE_PASSWORD: svc_reserva }
+    depends_on:
+      postgres: { condition: service_healthy }
+      discovery-server: { condition: service_healthy }
+
+  # ---------- front-end ----------
+  frontend:
+    build: ./frontend
+    environment:
+      VITE_API_URL: http://localhost:8080/api
+      VITE_KEYCLOAK_URL: http://localhost:8180
+    ports: ["3000:80"]
+    depends_on: [ api-gateway ]
+
+  # ---------- observabilidade (OTEL) ----------
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.111.0
+    command: ["--config=/etc/otel/config.yaml"]
+    volumes: [ "./infra/otel-collector-config.yaml:/etc/otel/config.yaml" ]
+    ports: ["4317:4317", "4318:4318"]
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.60
+    ports: ["16686:16686"]
+
+  prometheus:
+    image: prom/prometheus:v2.54.0
+    volumes: [ "./infra/prometheus.yml:/etc/prometheus/prometheus.yml" ]
+    ports: ["9090:9090"]
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    ports: ["3001:3000"]
+    depends_on: [ prometheus, jaeger ]
+
+  # ---------- qualidade ----------
+  sonarqube:
+    image: sonarqube:lts-community
+    profiles: ["tools"]
+    ports: ["9000:9000"]
+    volumes: [ "sonar-data:/opt/sonarqube/data" ]
+
+volumes:
+  pg-data:
+  sonar-data:
